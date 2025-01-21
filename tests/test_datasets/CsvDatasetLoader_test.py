@@ -7,4 +7,7 @@ def test_csv_dataset_loader():
     url = "https://archive.ics.uci.edu/ml/machine-learning-databases/ionosphere/ionosphere.data"
     column_names = [f"feature_{i}" for i in range(34)] + ["target"]
     csv = CsvDatasetLoader(url, target_column="target", names=column_names)
-    assert csv.__eq__(ionosphere), "CSV Test: data does not match"
+
+    # Compare the DataFrames
+    assert ionosphere.X.equals(csv.X), "Features do not match"
+    assert ionosphere.y.equals(csv.y), "Target columns do not match"

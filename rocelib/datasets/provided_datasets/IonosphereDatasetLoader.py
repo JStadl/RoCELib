@@ -17,7 +17,7 @@ class IonosphereDatasetLoader(ExampleDatasetLoader):
     def load_data(self):
         url = "https://archive.ics.uci.edu/ml/machine-learning-databases/ionosphere/ionosphere.data"
         column_names = self.numerical + ["target"]
-        self._data = pd.read_csv(url, header=None, names=column_names)
+        self._data = pd.read_csv(url, header=0, names=column_names)
 
     def get_default_preprocessed_features(self):
         # We will map the target variable here for default preprocessing
