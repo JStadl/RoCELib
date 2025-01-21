@@ -33,27 +33,23 @@ class RBR(RecourseGenerator):
         self.gmm = GaussianMixture(n_components=self.num_components, covariance_type='full', random_state=random_state)
         self.gmm.fit(self.task.training_data.data.drop(columns=["target"], errors='ignore'))
 
-    def generation_method(self, instance, column_name = "target", neg_value = 0, **kwargs) -> pd.DataFrame:
+    def _generation_method(self, instance, neg_value=0, column_name="target", **kwargs) -> pd.DataFrame:
         """
-            Generates a robust counterfactual explanation using probabilistic modeling.
-
-            @param instance: The instance for which to generate a counterfactual. Can be a DataFrame or Series.
-            @param column_name: The name of the target column.
-            @param neg_value: The value considered negative in the target variable.
-            @return: A DataFrame containing the robust counterfactual explanation.
+        @param instance: DataFrame or Series - Instance for which to generate a counterfactual.
+        @param neg_value: int - Value considered negative in the target variable.
+        @param column_name: str - Target column name.
+        @return: pd.DataFrame - Robust counterfactual explanation.
         """
+        instance_values = instance.drop(columns=[column_name], errors='ignore').values.flatten()
 
-        instance_values = instance.drop(column = [column_name], errors = 'ignore').values.flatten()
-
+        # Define objective function for min-max optimization
         def objective_function(x):
             return np.linalg.norm(x - instance_values)
 
-        # Define robustness constraint using Gaussian Mixture Model (GMM)
+        # Define worst-case robustness constraint using Gaussian Mixture Model (GMM)
         def robustness_constraint(x):
-            # Compute probability density
             prob_density = np.exp(self.gmm.score_samples([x]))
-            # Ensure counterfactual is in a dense region
-            return prob_density - 0.01
+            return prob_density - 0.01  # Ensure counterfactual is in a dense region
 
         # Initial counterfactual guess
         x0 = instance_values
@@ -62,13 +58,12 @@ class RBR(RecourseGenerator):
         constraints = ({'type': 'ineq', 'fun': robustness_constraint})
 
         # Solve min-max optimization problem using gradient-based optimization
-        result = minimize(objective_function, x0, method="SLSQP", constraints=constraints,
-                          options={'maxiter': self.max_iter})
+        result = minimize(objective_function, x0, method="SLSQP", constraints=constraints, options={'maxiter': 500})
 
         # If optimization is successful, return counterfactual; otherwise, return original instance
         if result.success:
             ce = pd.DataFrame([result.x], columns=instance.drop(columns=[column_name], errors='ignore').columns)
             return ce
         else:
-            print("Failed to generate a feasible counterfactual.")
+            print("Optimization failed. Returning original instance.")
             return pd.DataFrame(instance).T
