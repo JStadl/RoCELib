@@ -3,6 +3,7 @@ from rocelib.evaluations.ValidityEvaluator import ValidityEvaluator
 from rocelib.models.pytorch_models.SimpleNNModel import SimpleNNModel
 from rocelib.recourse_methods.Wachter import Wachter
 from rocelib.tasks.ClassificationTask import ClassificationTask
+from ..test_constants import TEST_INSTANCES, PASS_THRESHOLD
 
 
 def test_wachter() -> None:
@@ -19,11 +20,9 @@ def test_wachter() -> None:
     recourse = Wachter(ct)
 
     res = recourse.generate_for_all(neg_value=0)
-
     val = ValidityEvaluator(ct)
+    validty_pct = val.evaluate(res, test_instances=TEST_INSTANCES)
 
-    x = val.evaluate(res)
-
-    assert x > 0.95
+    assert validty_pct >= PASS_THRESHOLD
 
 
