@@ -67,3 +67,5 @@ class RBR(RecourseGenerator):
         else:
             print("Optimization failed. Returning original instance.")
             return pd.DataFrame(instance).T
+
+
