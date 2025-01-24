@@ -14,7 +14,7 @@ from rocelib.tasks.ClassificationTask import ClassificationTask
 def test_binary_linear_search_nn() -> None:
     # Create a new classification task and train the model on our data
     model = SimpleNNModel(10, [7], 1)
-    dl = CsvDatasetLoader('/Users/lorenzo/Documents/imperial/RoCELib/tests/assets/recruitment_data.csv', "HiringDecision")
+    dl = CsvDatasetLoader('./assets/recruitment_data.csv', "HiringDecision")
     ct = ClassificationTask(model, dl)
 
     ct.train()
