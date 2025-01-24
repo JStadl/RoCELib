@@ -14,7 +14,7 @@ from rocelib.tasks.ClassificationTask import ClassificationTask
 def test_binary_linear_search_nn() -> None:
     # Create a new classification task and train the model on our data
     model = SimpleNNModel(10, [7], 1)
-    dl = CsvDatasetLoader('./assets/recruitment_data.csv', "HiringDecision")
+    dl = CsvDatasetLoader('/Users/lorenzo/Documents/imperial/RoCELib/tests/assets/recruitment_data.csv', "HiringDecision")
     ct = ClassificationTask(model, dl)
 
     ct.train()
@@ -22,9 +22,9 @@ def test_binary_linear_search_nn() -> None:
     # Use BinaryLinearSearch to generate a recourse for each negative value
     recourse = BinaryLinearSearch(ct)
 
-    res = recourse.generate_for_all(neg_value=0)
+    res = recourse.generate_for_all(neg_value=0, column_name="HiringDecision")
     val = ValidityEvaluator(ct)
-    validity_pct = val.evaluate(res, test_instances=TEST_INSTANCES)
+    validity_pct = val.evaluate(res, test_instances=TEST_INSTANCES, column_name="HiringDecision")
 
     assert validity_pct > PASS_THRESHOLD
 

@@ -66,9 +66,9 @@ class KDTreeNNCE(RecourseGenerator):
         dist, idx = kd_tree.query(instance.values, k=1, return_distance=True)
         nearest_instance = positive_instances.iloc[idx[0]]
 
-        nearest_instance["predicted"] = nnce_y
+        nearest_instance[column_name] = nnce_y
 
         # Add the distance as a new column
-        nearest_instance["Loss"] = dist[0]
+        nearest_instance["loss"] = dist[0]
 
         return nearest_instance

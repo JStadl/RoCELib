@@ -42,7 +42,6 @@ class MultiModelValidityEvaluator(RecourseEvaluator):
             instance = pd.DataFrame(instance).T
 
         # Return if prediction is valid
-        print(list(map(lambda t: t.model.predict_single(instance) == valid_val, self.tasks)))
         return all(map(lambda t: t.model.predict_single(instance) == valid_val, self.tasks))
 
     def evaluate(self, recourses, valid_val=1, column_name="target", test_instances=None, **kwargs):
