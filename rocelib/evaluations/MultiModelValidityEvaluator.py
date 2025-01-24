@@ -4,7 +4,7 @@ from rocelib.evaluations.RecourseEvaluator import RecourseEvaluator
 from rocelib.tasks.Task import Task
 
 
-class MultipleModelValidityEvaluator(RecourseEvaluator):
+class MultiModelValidityEvaluator(RecourseEvaluator):
 
     def __init__(self, tasks: list[Task]):
         self.tasks = tasks
@@ -42,7 +42,8 @@ class MultipleModelValidityEvaluator(RecourseEvaluator):
             instance = pd.DataFrame(instance).T
 
         # Return if prediction is valid
-        return map(lambda t: t.model.predict_single(instance) == valid_val, self.tasks)
+        print(list(map(lambda t: t.model.predict_single(instance) == valid_val, self.tasks)))
+        return all(map(lambda t: t.model.predict_single(instance) == valid_val, self.tasks))
 
     def evaluate(self, recourses, valid_val=1, column_name="target", test_instances=None, **kwargs):
         """

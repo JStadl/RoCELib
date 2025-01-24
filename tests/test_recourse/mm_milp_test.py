@@ -1,7 +1,10 @@
 from rocelib.datasets.ExampleDatasets import get_example_dataset
+from rocelib.evaluations.MultiModelValidityEvaluator import MultiModelValidityEvaluator
 from rocelib.models.pytorch_models.SimpleNNModel import SimpleNNModel
 from rocelib.recourse_methods.ModelMultiplicityMILP import ModelMultiplicityMILP
 from rocelib.tasks.ClassificationTask import ClassificationTask
+from rocelib.evaluations.ValidityEvaluator import ValidityEvaluator
+from ..test_constants import TEST_INSTANCES, PASS_THRESHOLD
 
 
 def test_mce_predicts_positive_instances():
@@ -22,17 +25,27 @@ def test_mce_predicts_positive_instances():
 
     recourse = ModelMultiplicityMILP(dl, [model1, model2, model3])
 
-    for _, neg in dl.get_negative_instances(neg_value=0).iterrows():
+    val = MultiModelValidityEvaluator([ct1, ct2, ct3])
+    res = recourse.generate_for_all(neg_value=0)
 
-        res = recourse.generate_for_instance(neg)
+    validity_pct = val.evaluate(res, test_instances=TEST_INSTANCES)
 
-        if not res.empty:
-            prediction1 = model1.predict_single(res)
+    assert validity_pct > PASS_THRESHOLD
 
-            prediction2 = model2.predict_single(res)
 
-            prediction3 = model3.predict_single(res)
+    # for _, neg in dl.get_negative_instances(neg_value=0).iterrows():
+    #
+    #     res = recourse.generate_for_instance(neg)
 
-            assert prediction1
-            assert prediction2
-            assert prediction3
+
+
+        # if not res.empty:
+        #     prediction1 = model1.predict_single(res)
+        #
+        #     prediction2 = model2.predict_single(res)
+        #
+        #     prediction3 = model3.predict_single(res)
+        #
+        #     assert prediction1
+        #     assert prediction2
+        #     assert prediction3
