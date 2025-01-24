@@ -4,7 +4,9 @@ from rocelib.models.Models import get_sklearn_model
 from rocelib.models.pytorch_models.SimpleNNModel import SimpleNNModel
 from rocelib.recourse_methods.KDTreeNNCE import KDTreeNNCE
 from rocelib.recourse_methods.NNCE import NNCE
+from rocelib.evaluations.ValidityEvaluator import ValidityEvaluator
 from rocelib.tasks.ClassificationTask import ClassificationTask
+from ..test_constants import TEST_INSTANCES, PASS_THRESHOLD
 
 
 def test_kdtree_nnce() -> None:
@@ -16,11 +18,13 @@ def test_kdtree_nnce() -> None:
 
     ct.train()
 
-    kdrecourse = KDTreeNNCE(ct)
+    recourse = KDTreeNNCE(ct)
 
-    res = kdrecourse.generate_for_all()
+    res = recourse.generate_for_all(neg_value=0)
+    val = ValidityEvaluator(ct)
+    validity_pct = val.evaluate(res, test_instances=TEST_INSTANCES)
 
-    assert not res.empty
+    assert validity_pct > PASS_THRESHOLD
 
 
 def test_kdtree_nnce_same_as_nnce() -> None:
