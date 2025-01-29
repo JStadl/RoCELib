@@ -29,12 +29,13 @@ class OptimisticLikelihood(torch.nn.Module):
         p = self.x_dim
 
         L = torch.log(d) + (c - v[..., 0]) ** 2 / (2 * d ** 2) + (p - 1) * torch.log(self.sigma)
+        #
+        # v_grad = torch.zeros_like(v, device=self.device)
+        # v_grad[..., 0] = -(c - v[..., 0]) / d ** 2
+        # v_grad[..., 1] = 1 / d - (c - v[..., 0]) ** 2 / d ** 3
 
-        v_grad = torch.zeros_like(v, device=self.device)
-        v_grad[..., 0] = -(c - v[..., 0]) / d ** 2
-        v_grad[..., 1] = 1 / d - (c - v[..., 0]) ** 2 / d ** 3
-
-        return L, v_grad
+        # return L, v_grad
+        return L
 
     def optimize(self, x, x_feas, max_iter=1000):
         v = torch.zeros([x.shape[0], 2], device=self.device)
@@ -42,7 +43,8 @@ class OptimisticLikelihood(torch.nn.Module):
         num_stable_iter = 0
 
         for _ in range(max_iter):
-            F, grad = self.forward(v, x, x_feas)
+            # F, grad = self.forward(v, x, x_feas)
+            F = self.forward(v, x, x_feas)
             v = self.projection(v - 1 / torch.sqrt(torch.tensor(max_iter, device=self.device)) * grad)
 
             loss_sum = F.sum().item()
@@ -140,10 +142,13 @@ class RBRLoss(torch.nn.Module):
             self.X_feas_neg
         )
 
-        F_op = torch.stack([
-            self.op_likelihood.forward(v, x.expand([self.X_feas_neg.shape[0], -1]), self.X_feas_neg)[0]
-            for _ in range(v.shape[0])
-        ])
+        # F_op = torch.stack([
+        #     self.op_likelihood.forward(v, x.expand([self.X_feas_neg.shape[0], -1]), self.X_feas_neg)[0]
+        #     for _ in range(v.shape[0])
+        # ])
+        F_op = self.op_likelihood.forward(v, x.expand([self.X_feas_neg.shape[0], -1]), self.X_feas_neg)
+
         numer = torch.logsumexp(-F_op, -1)
 
         return numer - denom, denom, numer
+
