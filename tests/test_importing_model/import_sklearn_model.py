@@ -2,7 +2,9 @@ import os
 import pytest
 import joblib
 import pandas as pd
+from typing import Any
 
+from exceptions.invalid_sklearn_model_error import InvalidSKLearnModelError
 from rocelib.datasets.ExampleDatasets import get_example_dataset
 from rocelib.tasks.ClassificationTask import ClassificationTask
 from rocelib.models.imported_models.SKLearnModel import SKLearnModel
@@ -98,3 +100,8 @@ def test_throws_type_error() -> None:
 def test_throws_type_error_again() -> None:
     with pytest.raises(TypeError):
         trained_model = SKLearnModel.from_model(2)
+
+def test_throws_error_when_passing_non_sklearn_model_to_from_model() -> None:
+    with pytest.raises(InvalidSKLearnModelError):
+        non_sklearn_model: Any = "This is not a SKLearn model"
+        SKLearnModel.from_model(non_sklearn_model)

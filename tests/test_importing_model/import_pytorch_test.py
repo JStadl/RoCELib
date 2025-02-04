@@ -84,3 +84,9 @@ def test_throws_error_if_underlying_model_not_pytorch() -> None:
         torch.save(ct.model, "./model.pt")
         # Import Model
         trained_model = PytorchModel("./model.pt")
+
+
+def test_throws_error_when_passing_non_torch_model_to_from_model() -> None:
+    with pytest.raises(InvalidPytorchModelError):
+        non_torch_model = "This is not a PyTorch model"
+        PytorchModel.from_model(non_torch_model)

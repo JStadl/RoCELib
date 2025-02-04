@@ -1,9 +1,11 @@
+from exceptions.invalid_keras_model_error import InvalidKerasModelError
 from rocelib.datasets.ExampleDatasets import get_example_dataset
 from rocelib.models.imported_models.KerasModel import KerasModel
 from rocelib.models.keras_models.TrainableKerasModel import TrainableKerasModel
 from rocelib.tasks.ClassificationTask import ClassificationTask
 import os
 import pytest
+from typing import Any
 
 
 def test_import_keras_model_file() -> None:
@@ -72,6 +74,12 @@ def test_throws_type_error() -> None:
 def test_throws_type_error_again() -> None:
     with pytest.raises(TypeError):
         trained_model = KerasModel.from_model(2)
+
+
+def test_throws_error_when_passing_non_keras_model_to_from_model() -> None:
+    with pytest.raises(InvalidKerasModelError):
+        non_keras_model: Any = "This is not a Keras model"
+        KerasModel.from_model(non_keras_model)
 
 
 

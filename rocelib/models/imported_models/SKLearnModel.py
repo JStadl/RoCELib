@@ -4,6 +4,9 @@ import numpy as np
 from sklearn.base import BaseEstimator
 from rocelib.models.TrainedModel import TrainedModel
 
+from exceptions.invalid_sklearn_model_error import InvalidSKLearnModelError
+
+
 
 class SKLearnModel(TrainedModel):
     def __init__(self, model_path: str):
@@ -21,6 +24,9 @@ class SKLearnModel(TrainedModel):
         self.model = joblib.load(model_path)  # Load model from file
         self.check_model_is_sklearn_class(self.model)
 
+    from sklearn.base import BaseEstimator
+    from exceptions.invalid_sklearn_model_error import InvalidSKLearnModelError
+
     @classmethod
     def from_model(cls, model: BaseEstimator) -> 'SKLearnModel':
         """
@@ -28,12 +34,13 @@ class SKLearnModel(TrainedModel):
 
         :param model: A trained sklearn model instance
         :return: An instance of SKLearnModel
+        :raises InvalidSKLearnModelError: If the model is not a valid sklearn model.
         """
         if not isinstance(model, BaseEstimator):
-            raise TypeError(f"Expected 'model' to be an instance of sklearn BaseEstimator, but got {type(model)}")
+            raise InvalidSKLearnModelError(model)  # Raise error if not an sklearn model
 
         instance = cls.__new__(cls)  # Create a new instance without calling __init__
-        instance.model = model
+        instance.model = model  # Assign the valid sklearn model
         return instance
 
     def predict(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -85,15 +92,3 @@ class SKLearnModel(TrainedModel):
         """
         accuracy = self.model.score(X, y)
         return accuracy
-
-    def check_model_is_sklearn_class(self, model):
-        """
-        Check if the loaded model is an sklearn-compatible model.
-
-        :param model: Model instance to check.
-        """
-        if not isinstance(model, BaseEstimator):
-            raise TypeError(
-                f"Expected an sklearn model (BaseEstimator), but got {type(model).__name__}. "
-                "Ensure you are loading a properly trained sklearn model."
-            )

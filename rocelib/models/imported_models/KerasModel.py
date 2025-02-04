@@ -3,6 +3,8 @@ import pandas as pd
 
 from rocelib.models.TrainedModel import TrainedModel
 
+from exceptions.invalid_keras_model_error import InvalidKerasModelError
+
 
 class KerasModel(TrainedModel):
     def __init__(self, model_path: str):
@@ -28,6 +30,7 @@ class KerasModel(TrainedModel):
             )
         self.model = keras.saving.load_model(model_path)
 
+
     @classmethod
     def from_model(cls, model: keras.Model) -> 'KerasModel':
         """
@@ -35,15 +38,14 @@ class KerasModel(TrainedModel):
 
         :param model: A Keras model instance
         :return: An instance of KerasModel
+        :raises InvalidKerasModelError: If the model is not a valid Keras model.
         """
         if not isinstance(model, keras.Model):
-            raise TypeError(
-                f"Incorrect type of model={model}, "
-                f"expected type keras.Model, got {type(model)}"
-            )
+            raise InvalidKerasModelError(model)  # Raise error if not a valid Keras model
+
         instance = cls.__new__(cls)  # Create a new instance without calling __init__
-        instance.model = model
-        return instance
+        instance.model = model  # Assign the valid Keras model
+        return
 
     def predict(self, X: pd.DataFrame) -> pd.DataFrame:
         """

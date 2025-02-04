@@ -38,14 +38,16 @@ class PytorchModel(TrainedModel):
         :param model: A PyTorch model instance
         :param device: Device to load the model on ('cpu' or 'cuda')
         :return: An instance of PytorchModel
+        :raises InvalidPytorchModelError: If the model is not a valid PyTorch model.
         """
+        if not isinstance(model, torch.nn.Module):
+            raise InvalidPytorchModelError(model)  # Use the existing error handling
+
         instance = cls.__new__(cls)  # Create a new instance without calling __init__
         instance.device = torch.device(device)
-        instance.model = model.to(instance.device)
-        instance.model.eval()  # Set to evaluation mode
+        instance.model = model.to(instance.device)  # Move model to device
+        instance.model.eval()  # Set model to evaluation mode
 
-        (cls.input_dim, cls.hidden_dim, cls.output_dim) = get_model_dimensions_and_hidden_layers(model)
-       
         return instance
 
     def predict(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -106,14 +108,6 @@ class PytorchModel(TrainedModel):
         predictions = self.predict(X)
         accuracy = (predictions.view(-1) == torch.tensor(y.values)).float().mean()
         return accuracy.item()
-    
-    def check_model_is_torch_class(self, model):
-        if not isinstance(model, torch.nn.Module):
-            raise InvalidPytorchModelError(
-                f"Expected a PyTorch model (torch.nn.Module), but got {type(model).__name__}"
-                "The loaded model is not a torch model, but instead relies on a self defined class. \n"
-                "Please save your model again, ensuring to save the underlying torch model, rather than your wrapper class\n"
-                "Then try and load your model in again")
 
 def get_model_dimensions_and_hidden_layers(model):
     """
