@@ -25,7 +25,12 @@ class TitanicDatasetLoader(ExampleDatasetLoader):
 
     def load_data(self):
         url = "https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv"
-        self._data = pd.read_csv(url)
+        try:
+            self._data = pd.read_csv(url)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load dataset from {url}: {e}")
+
+
 
     def get_default_preprocessed_features(self) -> pd.DataFrame:
         numeric_transformer = Pipeline(steps=[
@@ -45,13 +50,16 @@ class TitanicDatasetLoader(ExampleDatasetLoader):
             ])
 
         # Impute and preprocess the data
-        data_features = self._data.drop(columns=["Survived"])
+        try:
+            data_features = self._data.drop(columns=["Survived"])
+            data_preprocessed = preprocessor.fit_transform(data_features)
+        except Exception as e:
+            raise RuntimeError(f"Error during dataset preprocessing: {e}")
+
 
         # Log the presence of NaNs before preprocessing
         print("NaNs before preprocessing:")
         print(data_features.isna().sum())
-
-        data_preprocessed = preprocessor.fit_transform(data_features)
 
         # Ensure that the output is a dense array
         if isinstance(data_preprocessed, np.ndarray):

@@ -45,6 +45,10 @@ class DistanceEvaluator(RecourseEvaluator):
         @param kwargs: other arguments
         @return: int, average distance of CEs from their original instances
         """
+
+        if recourses is None or not isinstance(recourses, pd.DataFrame):
+            raise ValueError("Expected 'recourses' to be a pandas DataFrame, but got None or an invalid type.")
+
         df1 = recourses.drop(columns=[column_name, "loss"], errors='ignore')
 
         if subset is None:

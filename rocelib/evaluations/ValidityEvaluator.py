@@ -25,19 +25,23 @@ class ValidityEvaluator(RecourseEvaluator):
 
     -------
     """
-    def checkValidity(self, instance, valid_val):
-        """
-        Checks if a given CE is valid
-        @param instance: pd.DataFrame / pd.Series / torch.Tensor, the CE to check validity of
-        @param valid_val: int, the target column value which denotes a valid CE
-        @return:
-        """
-        # Convert to DataFrame
-        if not isinstance(instance, pd.DataFrame):
-            instance = pd.DataFrame(instance).T
 
-        # Return if prediction is valid
-        return self.task.model.predict_single(instance) == valid_val
+    def checkValidity(self, instance, valid_val):
+        """Checks if a given CE is valid."""
+
+        if instance is None:
+            return False
+
+        if not isinstance(instance, (pd.Series, pd.DataFrame)):
+            raise TypeError(f"Expected 'instance' to be a pandas Series or DataFrame, but got {type(instance)}.")
+
+        instance = pd.DataFrame(instance).T if not isinstance(instance, pd.DataFrame) else instance
+
+        try:
+            return self.task.model.predict_single(instance) == valid_val
+        except Exception as e:
+            raise RuntimeError(f"Model prediction failed: {e}")
+
 
     def evaluate(self, recourses, valid_val=1, column_name="target", **kwargs):
         """

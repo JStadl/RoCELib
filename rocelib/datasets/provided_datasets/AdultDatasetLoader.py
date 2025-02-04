@@ -31,7 +31,10 @@ class AdultDatasetLoader(ExampleDatasetLoader):
             "marital-status", "occupation", "relationship", "race", "sex",
             "capital-gain", "capital-loss", "hours-per-week", "native-country", "income"
         ]
-        self._data = pd.read_csv(url, names=column_names, na_values=" ?", skipinitialspace=True)
+        try:
+            self._data = pd.read_csv(url, names=column_names, na_values=" ?", skipinitialspace=True)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load dataset from {url}: {e}")
 
     def get_default_preprocessed_features(self) -> pd.DataFrame:
 

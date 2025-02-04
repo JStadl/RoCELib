@@ -29,43 +29,34 @@ class ManifoldEvaluator(RecourseEvaluator):
     """
 
     def evaluate(self, recourses, n_neighbors=20, column_name="target", **kwargs):
-        """
-        Determines the proportion of CEs that lie on the data manifold based on LOF
-        @param recourses: DataFrame, containing the CEs in the same order as the negative instances in the dataset
-        @param n_neighbors: int, number of neighbours to compare to in order to find if outlier
-        @param column_name: str, name of target column
-        @param kwargs: other arguments
-        @return: proportion of CEs on manifold
-        """
-        on_manifold = 0
-        cnt = 0
+        """Determines the proportion of CEs that lie on the data manifold based on LOF."""
+
+        if recourses is None or recourses.empty:
+            raise ValueError("Recourse dataset is empty. Cannot perform manifold evaluation.")
 
         data = self.task.training_data.X
         recourses = recourses.drop(columns=[column_name, "loss"], errors='ignore')
 
-        # TODO: Compute raw LoF score, proplace code to see what else is working
-        for _, recourse in recourses.iterrows():
+        on_manifold = 0
+        cnt = 0
 
-            if recourse is None:
-                cnt += 1
-                continue
+        for _, recourse in recourses.iterrows():
+            if recourse is None or recourse.isnull().any():
+                continue  # Skip invalid rows
 
             # Combine the dataset with the new instance
             data_with_instance = pd.concat([data, pd.DataFrame([recourse])], ignore_index=True)
-
             data_with_instance.columns = data_with_instance.columns.astype(str)
 
-            # Apply Local Outlier Factor (LOF)
-            lof = LocalOutlierFactor(n_neighbors=n_neighbors)
-            lof_scores = lof.fit_predict(data_with_instance)  # Predict if data points are outliers (-1) or not (1)
+            try:
+                lof = LocalOutlierFactor(n_neighbors=n_neighbors)
+                lof_scores = lof.fit_predict(data_with_instance)
+                instance_lof_score = lof.negative_outlier_factor_[-1]
+            except Exception as e:
+                raise RuntimeError(f"LOF calculation failed: {e}")
 
-            # The last point in the combined dataset is the instance we are checking
-            instance_lof_score = lof.negative_outlier_factor_[-1]
-
-            # Return True if the LOF score is below the threshold (i.e., not an outlier)
             if instance_lof_score > 0.9:
                 on_manifold += 1
-
             cnt += 1
 
-        return on_manifold / cnt
+        return on_manifold / cnt if cnt > 0 else 0
