@@ -43,15 +43,17 @@ class RecourseGenerator(ABC):
         @param neg_value: The value considered negative in the target variable.
         @return: A DataFrame of the recourses for the provided instances.
         """
+        """Generates counterfactuals for given instances."""
+
+        #Ensure valid input
+        if instances is None or not isinstance(instances, pd.DataFrame):
+            raise ValueError("Expected a pandas DataFrame for 'instances', but got invalid input.")
+
         cs = []
-
         for _, instance in instances.iterrows():
-            cs.append(self.generate_for_instance(instance, neg_value=neg_value,
-                                                 column_name=column_name, **kwargs))
+            cs.append(self.generate_for_instance(instance, neg_value=neg_value, column_name=column_name, **kwargs))
 
-        res = pd.concat(cs)
-
-        return res
+        return pd.concat(cs)
 
     def generate_for_instance(self, instance, neg_value=0,
                               column_name="target", **kwargs) -> pd.DataFrame:
@@ -78,6 +80,9 @@ class RecourseGenerator(ABC):
         """
         negatives = self.task.training_data.get_negative_instances(neg_value, column_name=column_name)
 
+        if negatives.empty:
+            raise ValueError(f"No negative instances found with target value {neg_value} in column '{column_name}'.")
+
         recourses = self.generate(
             negatives,
             column_name=column_name,
@@ -87,6 +92,7 @@ class RecourseGenerator(ABC):
 
         recourses.index = negatives.index
         return recourses
+
 
     @abstractmethod
     def _generation_method(self, instance,

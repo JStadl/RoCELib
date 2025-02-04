@@ -36,6 +36,19 @@ class RoCourseNet(RecourseGenerator):
         Generates a single counterfactual for 'instance' using a local linear approximation
         and an adversarial approach to the surrogate parameters.
         """
+
+        # Validate input instance
+        if not isinstance(instance, pd.Series):
+            raise TypeError("Expected 'instance' to be a pandas Series, but got: " + str(type(instance)))
+
+        # Ensure 'column_name' exists before dropping
+        if column_name in instance:
+            instance = instance.drop(labels=[column_name])
+
+        # Check that all values are numeric
+        if not np.issubdtype(instance.values.dtype, np.number):
+            raise ValueError("All features in 'instance' must be numeric.")
+
         # 1) Convert the single instance from pd.Series to a NumPy array x
         x_np = instance.drop(labels=[column_name], errors='ignore').values.astype(float)
         x_shape = x_np.shape

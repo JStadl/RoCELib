@@ -66,15 +66,19 @@ class RNCE(RecourseGenerator):
         @param neg_value: The value considered negative in the target variable.
         @return: A DataFrame containing robust instances from the dataset.
         """
-        S = []
-
+        candidates = []
         for _, instance in self.task.training_data.data.iterrows():
             instance_x = instance.drop(column_name)
+
             if robustInit:
-                if self.intabs.evaluate(instance_x, delta=delta, bias_delta=bias_delta, desired_output=1-neg_value):
-                    S.append(instance_x)
+                if self.intabs.evaluate(instance_x, delta=delta, bias_delta=bias_delta, desired_output=1 - neg_value):
+                    candidates.append(instance_x)
             else:
                 if self.task.model.predict_single(instance_x):
-                    S.append(instance_x)
+                    candidates.append(instance_x)
 
-        return pd.DataFrame(S)
+        if not candidates:
+            raise ValueError("No valid candidates found for counterfactual generation.")
+
+        return pd.DataFrame(candidates)
+
