@@ -59,6 +59,10 @@ class OptSolver:
         # Turn off the Gurobi output
         self.gurobiModel.setParam('OutputFlag', 0)
 
+        # Validate input instance
+        if instance is None or (isinstance(instance, pd.DataFrame) and instance.empty):
+            raise ValueError("Instance cannot be None or an empty DataFrame.")
+
         # Convert instance to a list
         if isinstance(instance, pd.DataFrame):
             try:

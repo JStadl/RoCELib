@@ -31,6 +31,9 @@ def quick_tabulate(dl: DatasetLoader, model: TrainableModel, methods: Dict[str, 
     @return: None
     """
 
+    if not methods:
+        raise ValueError("The 'methods' dictionary cannot be empty. Provide at least one recourse generation method.")
+
     # Preprocess example datasets
     if preprocess and isinstance(dl, ExampleDatasetLoader):
         dl.default_preprocess()

@@ -39,6 +39,8 @@ def keras_to_pytorch(keras_model):
                 layers.append(nn.Sigmoid())
             elif activation == tf.keras.activations.softmax:
                 layers.append(nn.Softmax(dim=1))
+            else:
+                raise ValueError(f"Unsupported activation function: {activation}")
 
         # Map Keras Flatten layers to PyTorch Flatten layers
         elif isinstance(layer, tf.keras.layers.Flatten):
@@ -50,6 +52,8 @@ def keras_to_pytorch(keras_model):
             stride = layer.strides
             padding = layer.padding
             layers.append(nn.MaxPool2d(kernel_size=pool_size, stride=stride, padding=padding))
+        else:
+            raise NotImplementedError(f"Conversion for {type(layer)} is not yet supported.")
 
     # Create a PyTorch sequential model from the list of layers
     pytorch_model = nn.Sequential(*layers)
