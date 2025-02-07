@@ -45,7 +45,7 @@ class KerasModel(TrainedModel):
 
         instance = cls.__new__(cls)  # Create a new instance without calling __init__
         instance.model = model  # Assign the valid Keras model
-        return
+        return instance
 
     def predict(self, X: pd.DataFrame) -> pd.DataFrame:
         """

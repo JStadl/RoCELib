@@ -25,8 +25,6 @@ class PytorchModel(TrainedModel):
         self.device = torch.device(device)
         self.model = torch.load(model_path, map_location=self.device)  # Load full model
 
-        self.check_model_is_torch_class(self.model)
-
         self.model.eval()  # Set to evaluation mode
         (self.input_dim, self.hidden_dim, self.output_dim) = get_model_dimensions_and_hidden_layers(self.model)
 

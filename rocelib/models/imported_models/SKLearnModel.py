@@ -22,7 +22,6 @@ class SKLearnModel(TrainedModel):
             raise ValueError(f"Invalid file format: {model_path}. Expected a .pkl file.")
 
         self.model = joblib.load(model_path)  # Load model from file
-        self.check_model_is_sklearn_class(self.model)
 
     from sklearn.base import BaseEstimator
     from exceptions.invalid_sklearn_model_error import InvalidSKLearnModelError
@@ -36,8 +35,8 @@ class SKLearnModel(TrainedModel):
         :return: An instance of SKLearnModel
         :raises InvalidSKLearnModelError: If the model is not a valid sklearn model.
         """
-        if not isinstance(model, BaseEstimator):
-            raise InvalidSKLearnModelError(model)  # Raise error if not an sklearn model
+        # if not isinstance(model, BaseEstimator):
+        #     raise InvalidSKLearnModelError(model)  # Raise error if not an sklearn model
 
         instance = cls.__new__(cls)  # Create a new instance without calling __init__
         instance.model = model  # Assign the valid sklearn model
