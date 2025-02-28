@@ -45,10 +45,10 @@ def create_weights_and_bias_dictionary(model):
 
 class ModelMultiplicityMILP(RecourseGenerator):
 
-    def __init__(self, dl: DatasetLoader, models: list[PytorchModel]):
-        super().__init__(Task(models[0], dl))
+    def __init__(self, ct):
+        super().__init__(ct)
         self.gurobiModel = Model()
-        self.models = models
+        self.models = ct.mm_models
         self.inputNodes = None
         self.outputNodes = {}
 
@@ -82,9 +82,10 @@ class ModelMultiplicityMILP(RecourseGenerator):
             all_nodes[key] = self.inputNodes[key]
 
         for model_idx, model in enumerate(self.models):
-            weights, biases = create_weights_and_bias_dictionary(model)
+            m = self.models[model]
+            weights, biases = create_weights_and_bias_dictionary(m)
 
-            layers = [model.input_dim] + model.hidden_dim + [model.output_dim]
+            layers = [m.input_dim] + m.hidden_dim + [m.output_dim]
 
             # Iterate through all "hidden" layers, the first value in intabs.layers is the input layer and the
             # last value in intabs.layers is the output layer. The actual layer index whose variables we want to
