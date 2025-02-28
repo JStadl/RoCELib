@@ -5,7 +5,7 @@ import clingo
 from rocelib.datasets.DatasetLoader import DatasetLoader
 from rocelib.recourse_methods.RecourseGenerator import RecourseGenerator
 from rocelib.recourse_methods.NNCE import NNCE
-from rocelib.tasks.ClassificationTask import ClassificationTask
+from rocelib.tasks.Task import Task
 
 BAF_ENCODING = """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -211,7 +211,7 @@ class ArgEnsembling(RecourseGenerator):
             dl: dataset loader
             models: the list of models forming the model multiplicity problem setting
         """
-        super().__init__(ClassificationTask(models[0], dl))
+        super().__init__(Task(models[0], dl))
         self.models = models
         self.dl = dl
 
@@ -236,7 +236,7 @@ class ArgEnsembling(RecourseGenerator):
         for i, m in enumerate(self.models):
             pred = m.predict_single(pd.DataFrame(x.reshape(1, -1)))
             res.append(pred)
-            ce_gen = NNCE(ClassificationTask(m, self.dl))
+            ce_gen = NNCE(Task(m, self.dl))
             ce = ce_gen.generate_for_instance(pd.DataFrame(x.reshape(1, -1)), neg_value=pred)
             ces[i] = ce.values.flatten()[:len(x)]
 

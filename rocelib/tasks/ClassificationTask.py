@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from rocelib.datasets.DatasetLoader import DatasetLoader
 from rocelib.evaluations.robustness_evaluations.Evaluator import Evaluator
 from rocelib.models.TrainedModel import TrainedModel
+from rocelib.recourse_methods.ModelMultiplicityMILP import ModelMultiplicityMILP
 from rocelib.recourse_methods.RecourseGenerator import RecourseGenerator
 from rocelib.tasks.Task import Task
 from typing import List, Dict, Any, Union, Tuple
@@ -34,7 +35,7 @@ from rocelib.evaluations.RobustnessProportionEvaluator import RobustnessProporti
 
 from rocelib.evaluations.robustness_evaluations.MM_Robustness_Implementations.MultiplicityValidityRobustnessEvaluator import MultiplicityValidityRobustnessEvaluator
 # from robustx.generators.robust_CE_methods.APAS import APAS
-# from robustx.generators.robust_CE_methods.ArgEnsembling import ArgEnsembling
+from rocelib.recourse_methods.ArgEnsembling import ArgEnsembling
 # from robustx.generators.robust_CE_methods.DiverseRobustCE import DiverseRobustCE
 # from robustx.generators.robust_CE_methods.MCER import MCER
 # from robustx.generators.robust_CE_methods.ModelMultiplicityMILP import ModelMultiplicityMILP
@@ -71,7 +72,7 @@ class ClassificationTask(Task):
         self.methods = {
             "BinaryLinearSearch": BinaryLinearSearch,
             # "GuidedBinaryLinearSearch": GuidedBinaryLinearSearch,
-            # "MMMILP": ModelMultiplicityMILP,
+            "MMMILP": ModelMultiplicityMILP,
             "NNCE": NNCE,
             "KDTreeNNCE": KDTreeNNCE,
             "MCE": MCE,
@@ -81,7 +82,7 @@ class ClassificationTask(Task):
             "RoCourseNet": RoCourseNet,
             "STCE": TrexNN,
             "APAS": APAS,
-            # "ArgEnsembling": ArgEnsembling,
+            "ArgEnsembling": ArgEnsembling,
             # "DiverseRobustCE": DiverseRobustCE
             # "Proplace": Proplace
         }
@@ -181,29 +182,29 @@ class ClassificationTask(Task):
 
     def generate_for_model_method(self, model_name, method, type, **kwargs) -> Tuple[pd.DataFrame, float]:
         print(f"GENERATING FOR: model: {model_name}, method: {method}")
-        try:
-            # Check if the method exists in the dictionary
-            if method not in self.methods:
-                raise ValueError(f"Recourse method '{method}' not found. Available methods: {list(self.methods.keys())}")
+        # try:
+        # Check if the method exists in the dictionary
+        if method not in self.methods:
+            raise ValueError(f"Recourse method '{method}' not found. Available methods: {list(self.methods.keys())}")
 
-            # Instantiate the recourse method
-            task = Task(self.mm_models[model_name], dataset=self.dataset)
-            recourse_method = self.methods[method](task)  # Pass the classification task to the method
+        # Instantiate the recourse method
+        task = Task(self.mm_models[model_name], dataset=self.dataset)
+        recourse_method = self.methods[method](task, self.mm_models)  # Pass the classification task to the method   # , self.mm_models ???
 
-            # Start timer
-            start_time = time.perf_counter()
+        # Start timer
+        start_time = time.perf_counter()
 
-            res = recourse_method.generate_for_all(**kwargs)  # Generate counterfactuals
-            res_correct_type = self.convert_datatype(res, type)
-            # End timer
-            end_time = time.perf_counter()
+        res = recourse_method.generate_for_all(**kwargs)  # Generate counterfactuals
+        res_correct_type = self.convert_datatype(res, type)
+        # End timer
+        end_time = time.perf_counter()
 
-            # Store the result in the counterfactual explanations dictionary
-            return [res, end_time - start_time]
+        # Store the result in the counterfactual explanations dictionary
+        return [res, end_time - start_time]
 
-        except Exception as e:
-            print(f"Error generating counterfactuals with method '{method}': {e}")
-            return None
+        # except Exception as e:
+        #     print(f"Error generating counterfactuals with method '{method}': {e}")
+        #     return None
 
 
 
