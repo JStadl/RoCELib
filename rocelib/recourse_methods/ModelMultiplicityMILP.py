@@ -10,10 +10,22 @@ from rocelib.tasks.ClassificationTask import ClassificationTask
 
 def create_weights_and_bias_dictionary(model):
     """
-    layer 0 is input layer
+    Extract the learned weights and biases from a PyTorch-based model and store them in dictionaries.
+    The first layer in the model is considered the input layer (layer 0).
+
+    Parameters
+    ----------
+    model : PytorchModel
+        A PytorchModel object containing the trained PyTorch model.
+
+    Returns
+    -------
+    tuple of (dict, dict)
+        Two dictionaries:
+        - weight_dict, keyed by 'weight_l<layer_idx>_n<src_idx>_to_l<layer_idx+1>_n<dest_idx>'
+        - bias_dict, keyed by 'bias_into_l<layer_idx+1>_n<dest_idx>'
     """
 
-    # Extract the weights and biases as numpy arrays for each layer
     params = {}
     for name, param in model.model.named_parameters():
         params[name] = param.detach().numpy()
@@ -44,8 +56,23 @@ def create_weights_and_bias_dictionary(model):
 
 
 class ModelMultiplicityMILP(RecourseGenerator):
+    """
+        Formulates and solves a Mixed Integer Linear Program (MILP) to find a recourse instance
+        that satisfies the classification constraints of multiple neural network models simultaneously.
+    """
 
     def __init__(self, dl: DatasetLoader, models: list[PytorchModel]):
+        """
+                Initialize the MILP-based recourse generator.
+
+                Parameters
+                ----------
+                dl : DatasetLoader
+                    Provides the dataset (features, labels, etc.).
+                models : list[PytorchModel]
+                    A list of trained PyTorch models to incorporate into the MILP constraints.
+        """
+
         super().__init__(ClassificationTask(models[0], dl))
         self.gurobiModel = Model()
         self.models = models
@@ -53,6 +80,32 @@ class ModelMultiplicityMILP(RecourseGenerator):
         self.outputNodes = {}
 
     def _generation_method(self, instance, column_name="target", neg_value=0, M=1000, epsilon=0.1, **kwargs):
+
+        """
+            Generate a recourse instance by formulating and solving the MILP with constraints
+            derived from each of the provided PyTorch models.
+
+            Parameters
+            ----------
+            instance : pd.DataFrame or list
+                The original instance (features) for which recourse is to be generated.
+            column_name : str, optional
+                Unused in this implementation, by default "target".
+            neg_value : int, optional
+                Decides the sign of the output constraints; 0 for non-negative and 1 for non-positive, by default 0.
+            M : float, optional
+                A large constant for big-M constraints, by default 1000.
+            epsilon : float, optional
+                A small offset for output constraints, by default 0.1.
+            kwargs : dict
+                Additional arguments (not used in this method).
+
+            Returns
+            -------
+            pd.DataFrame
+                A single-row DataFrame containing the values of the recourse instance if a solution is found.
+                If the MILP is infeasible (no solution), returns an empty DataFrame.
+        """
 
         self.gurobiModel = Model()
 
@@ -122,16 +175,6 @@ class ModelMultiplicityMILP(RecourseGenerator):
                                                name=f"model{model_idx}_constr3_" + var_name)
 
                     self.gurobiModel.addConstr(qr <= all_nodes[var_name])
-
-                    # sum_node = self.gurobiModel.addVar(name=f"model{model_idx}_layer{layer+1}_n{node}_sum")
-                    #
-                    # self.gurobiModel.addConstr(quicksum((
-                    #     weights[f'weight_l{layer}_n{prev_node_index}_to_l{layer + 1}_n{node}'] *
-                    #     all_nodes[
-                    #         f"model{model_idx}_v_{layer}_{prev_node_index}" if layer else f"v_0_{prev_node_index}"] for prev_node_index in range(layers[layer])
-                    # )) + biases[f'bias_into_l{layer + 1}_n{node}'] == sum_node)
-                    #
-                    # self.gurobiModel.addGenConstrMax(all_nodes[var_name], [sum_node, 0.0], name=f"model{model_idx}_l{layer+1}_n{node}_relu")
 
                     self.gurobiModel.update()
 
