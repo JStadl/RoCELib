@@ -1,0 +1,550 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rocelib.tasks.ClassificationTask &mdash; RoCELib  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            RoCELib
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">rocelib</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">RoCELib</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rocelib.tasks.ClassificationTask</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rocelib.tasks.ClassificationTask</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">tabulate</span> <span class="kn">import</span> <span class="n">tabulate</span>  <span class="c1"># For better table formatting</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="kn">from</span> <span class="nn">rocelib.datasets.DatasetLoader</span> <span class="kn">import</span> <span class="n">DatasetLoader</span>
+<span class="kn">from</span> <span class="nn">rocelib.evaluations.robustness_evaluations.Evaluator</span> <span class="kn">import</span> <span class="n">Evaluator</span>
+<span class="kn">from</span> <span class="nn">rocelib.evaluations.robustness_evaluations.ModelMultiplicityRobustnessEvaluator</span> <span class="kn">import</span> \
+    <span class="n">ModelMultiplicityRobustnessEvaluator</span>
+<span class="kn">from</span> <span class="nn">rocelib.models.TrainedModel</span> <span class="kn">import</span> <span class="n">TrainedModel</span>
+<span class="kn">from</span> <span class="nn">rocelib.recourse_methods.RecourseGenerator</span> <span class="kn">import</span> <span class="n">RecourseGenerator</span>
+<span class="kn">from</span> <span class="nn">rocelib.tasks.Task</span> <span class="kn">import</span> <span class="n">Task</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">rocelib.recourse_methods.BinaryLinearSearch</span> <span class="kn">import</span> <span class="n">BinaryLinearSearch</span>
+<span class="kn">from</span> <span class="nn">rocelib.recourse_methods.NNCE</span> <span class="kn">import</span> <span class="n">NNCE</span>
+<span class="kn">from</span> <span class="nn">rocelib.recourse_methods.KDTreeNNCE</span> <span class="kn">import</span> <span class="n">KDTreeNNCE</span>
+<span class="kn">from</span> <span class="nn">rocelib.recourse_methods.MCE</span> <span class="kn">import</span> <span class="n">MCE</span>
+<span class="kn">from</span> <span class="nn">rocelib.recourse_methods.Wachter</span> <span class="kn">import</span> <span class="n">Wachter</span>
+<span class="kn">from</span> <span class="nn">rocelib.recourse_methods.RNCE</span> <span class="kn">import</span> <span class="n">RNCE</span>
+<span class="kn">from</span> <span class="nn">rocelib.recourse_methods.MCER</span> <span class="kn">import</span> <span class="n">MCER</span>
+<span class="kn">from</span> <span class="nn">rocelib.recourse_methods.RoCourseNet</span> <span class="kn">import</span> <span class="n">RoCourseNet</span>
+<span class="kn">from</span> <span class="nn">rocelib.recourse_methods.STCE</span> <span class="kn">import</span> <span class="n">TrexNN</span>
+<span class="kn">from</span> <span class="nn">rocelib.recourse_methods.GuidedBinaryLinearSearch</span> <span class="kn">import</span> <span class="n">GuidedBinaryLinearSearch</span>
+<span class="c1"># from rocelib.recourse_methods.ModelMultiplicityMILP import ModelMultiplicityMILP</span>
+<span class="kn">from</span> <span class="nn">rocelib.recourse_methods.APAS</span> <span class="kn">import</span> <span class="n">APAS</span>
+<span class="c1"># from rocelib.recourse_methods.ArgEnsembling import ArgEnsembling</span>
+<span class="kn">from</span> <span class="nn">rocelib.recourse_methods.DiverseRobustCE</span> <span class="kn">import</span> <span class="n">DiverseRobustCE</span>
+<span class="kn">from</span> <span class="nn">rocelib.recourse_methods.PROPLACE</span> <span class="kn">import</span> <span class="n">PROPLACE</span>
+
+<span class="kn">from</span> <span class="nn">rocelib.evaluations.ManifoldEvaluator</span> <span class="kn">import</span> <span class="n">ManifoldEvaluator</span>
+<span class="kn">from</span> <span class="nn">rocelib.evaluations.DistanceEvaluator</span> <span class="kn">import</span> <span class="n">DistanceEvaluator</span>
+<span class="kn">from</span> <span class="nn">rocelib.evaluations.ValidityEvaluator</span> <span class="kn">import</span> <span class="n">ValidityEvaluator</span>
+<span class="kn">from</span> <span class="nn">rocelib.evaluations.RobustnessProportionEvaluator</span> <span class="kn">import</span> <span class="n">RobustnessProportionEvaluator</span>
+<span class="kn">from</span> <span class="nn">rocelib.evaluations.robustness_evaluations.NE_Robustness_Implementations.InvalidationRateRobustnessEvaluator</span> <span class="kn">import</span> <span class="n">InvalidationRateRobustnessEvaluator</span>
+
+<span class="kn">from</span> <span class="nn">rocelib.evaluations.robustness_evaluations.MM_Robustness_Implementations.MultiplicityValidityRobustnessEvaluator</span> <span class="kn">import</span> <span class="n">MultiplicityValidityRobustnessEvaluator</span>
+<span class="c1"># from robustx.generators.robust_CE_methods.APAS import APAS</span>
+<span class="c1"># from robustx.generators.robust_CE_methods.ArgEnsembling import ArgEnsembling</span>
+<span class="c1"># from robustx.generators.robust_CE_methods.DiverseRobustCE import DiverseRobustCE</span>
+<span class="c1"># from robustx.generators.robust_CE_methods.MCER import MCER</span>
+<span class="c1"># from robustx.generators.robust_CE_methods.ModelMultiplicityMILP import ModelMultiplicityMILP</span>
+<span class="c1"># from robustx.generators.robust_CE_methods.PROPLACE import PROPLACE</span>
+<span class="c1"># from robustx.generators.robust_CE_methods.RNCE import RNCE</span>
+<span class="c1"># from robustx.generators.robust_CE_methods.ROAR import ROAR</span>
+<span class="c1"># from robustx.generators.robust_CE_methods.STCE import STCE</span>
+
+<span class="c1"># self.methods = {&quot;APAS&quot;: APAS, &quot;ArgEnsembling&quot;: ArgEnsembling, &quot;DiverseRobustCE&quot;: DiverseRobustCE, &quot;MCER&quot;: MCER,</span>
+<span class="c1">#            &quot;ModelMultiplicityMILP&quot;: ModelMultiplicityMILP, &quot;PROPLACE&quot;: PROPLACE, &quot;RNCE&quot;: RNCE, &quot;ROAR&quot;: ROAR,</span>
+<span class="c1">#            &quot;STCE&quot;: STCE, &quot;BinaryLinearSearch&quot;: BinaryLinearSearch, &quot;GuidedBinaryLinearSearch&quot;: GuidedBinaryLinearSearch,</span>
+<span class="c1">#            &quot;NNCE&quot;: NNCE, &quot;KDTreeNNCE&quot;: KDTreeNNCE, &quot;MCE&quot;: MCE, &quot;Wachter&quot;: Wachter}</span>
+<span class="c1"># self.evaluation_metrics = {&quot;Distance&quot;: DistanceEvaluator, &quot;Validity&quot;: ValidityEvaluator, &quot;Manifold&quot;: ManifoldEvaluator,</span>
+<span class="c1">#                &quot;Delta-robustness&quot;: RobustnessProportionEvaluator}</span>
+
+<span class="n">TIMEOUT_SECONDS</span> <span class="o">=</span> <span class="mi">60</span>
+
+
+<div class="viewcode-block" id="ClassificationTask">
+<a class="viewcode-back" href="../../../rocelib.tasks.html#rocelib.tasks.ClassificationTask.ClassificationTask">[docs]</a>
+<span class="k">class</span> <span class="nc">ClassificationTask</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A specific task type for classification problems that extends the base Task class.</span>
+
+<span class="sd">    This class provides methods for training the model and retrieving positive instances</span>
+<span class="sd">    from the training data.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        model: The model to be trained and used for predictions.</span>
+<span class="sd">        _dataset: The dataset used for training the model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">TrainedModel</span><span class="p">,</span> <span class="n">dataset</span><span class="p">:</span> <span class="n">DatasetLoader</span><span class="p">,</span> <span class="n">mm_models</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">TrainedModel</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">mm_models</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">methods</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;BinaryLinearSearch&quot;</span><span class="p">:</span> <span class="n">BinaryLinearSearch</span><span class="p">,</span>
+            <span class="c1"># &quot;GuidedBinaryLinearSearch&quot;: GuidedBinaryLinearSearch,</span>
+            <span class="c1"># &quot;MMMILP&quot;: ModelMultiplicityMILP,</span>
+            <span class="s2">&quot;NNCE&quot;</span><span class="p">:</span> <span class="n">NNCE</span><span class="p">,</span>
+            <span class="s2">&quot;KDTreeNNCE&quot;</span><span class="p">:</span> <span class="n">KDTreeNNCE</span><span class="p">,</span>
+            <span class="s2">&quot;MCE&quot;</span><span class="p">:</span> <span class="n">MCE</span><span class="p">,</span>
+            <span class="s2">&quot;Wachter&quot;</span><span class="p">:</span> <span class="n">Wachter</span><span class="p">,</span>
+            <span class="s2">&quot;RNCE&quot;</span><span class="p">:</span> <span class="n">RNCE</span><span class="p">,</span>
+            <span class="s2">&quot;MCER&quot;</span><span class="p">:</span> <span class="n">MCER</span><span class="p">,</span>
+            <span class="s2">&quot;RoCourseNet&quot;</span><span class="p">:</span> <span class="n">RoCourseNet</span><span class="p">,</span>
+            <span class="s2">&quot;STCE&quot;</span><span class="p">:</span> <span class="n">TrexNN</span><span class="p">,</span>
+            <span class="s2">&quot;APAS&quot;</span><span class="p">:</span> <span class="n">APAS</span><span class="p">,</span>
+            <span class="c1"># &quot;ArgEnsembling&quot;: ArgEnsembling,</span>
+            <span class="s2">&quot;DiverseRobustCE&quot;</span><span class="p">:</span> <span class="n">DiverseRobustCE</span><span class="p">,</span>
+            <span class="s2">&quot;PROPLACE&quot;</span><span class="p">:</span> <span class="n">PROPLACE</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">evaluation_metrics</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;Distance&quot;</span><span class="p">:</span> <span class="n">DistanceEvaluator</span><span class="p">,</span>
+            <span class="s2">&quot;Validity&quot;</span><span class="p">:</span> <span class="n">ValidityEvaluator</span><span class="p">,</span>
+            <span class="s2">&quot;ManifoldEvaluator&quot;</span><span class="p">:</span> <span class="n">ManifoldEvaluator</span><span class="p">,</span>
+            <span class="s2">&quot;ModelMultiplicityRobustness&quot;</span><span class="p">:</span> <span class="n">MultiplicityValidityRobustnessEvaluator</span><span class="p">,</span>
+            <span class="s2">&quot;DeltaRobustnessEvaluator&quot;</span><span class="p">:</span> <span class="n">RobustnessProportionEvaluator</span><span class="p">,</span>
+            <span class="s2">&quot;InvalidationRateRobustnessEvaluator&quot;</span><span class="p">:</span> <span class="n">InvalidationRateRobustnessEvaluator</span>
+        <span class="p">}</span>
+
+<div class="viewcode-block" id="ClassificationTask.get_random_positive_instance">
+<a class="viewcode-back" href="../../../rocelib.tasks.html#rocelib.tasks.ClassificationTask.ClassificationTask.get_random_positive_instance">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_random_positive_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">neg_value</span><span class="p">,</span> <span class="n">column_name</span><span class="o">=</span><span class="s2">&quot;target&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieves a random positive instance from the training data that does not have the specified negative value.</span>
+
+<span class="sd">        This method continues to sample from the training data until a positive instance</span>
+<span class="sd">        is found whose predicted label is not equal to the negative value.</span>
+
+<span class="sd">        @param neg_value: The value considered negative in the target variable.</span>
+<span class="sd">        @param column_name: The name of the target column used to identify positive instances.</span>
+<span class="sd">        @return: A Pandas Series representing a random positive instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get a random positive instance from the training data</span>
+        <span class="n">pos_instance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="o">.</span><span class="n">get_random_positive_instance</span><span class="p">()</span>
+
+        <span class="c1"># Loop until a positive instance whose prediction is positive is found</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict_single</span><span class="p">(</span><span class="n">pos_instance</span><span class="p">)</span> <span class="o">==</span> <span class="n">neg_value</span><span class="p">:</span>
+            <span class="n">pos_instance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="o">.</span><span class="n">get_random_positive_instance</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">pos_instance</span></div>
+
+
+<div class="viewcode-block" id="ClassificationTask.generate">
+<a class="viewcode-back" href="../../../rocelib.tasks.html#rocelib.tasks.ClassificationTask.ClassificationTask.generate">[docs]</a>
+    <span class="k">def</span> <span class="nf">generate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">methods</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;DataFrame&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates counterfactual explanations for the specified methods and stores the results.</span>
+
+<span class="sd">        @param methods: List of recourse methods (by name) to use for counterfactual generation. If not provided, then counterfactuals will be generated for all methods</span>
+<span class="sd">        @param type: The datatype your instances are in e.g. dataframe, nparray, tensor</span>
+<span class="sd">        @return: A dictionary from recourse method to a tuple of (Pandas dataframe holding the counterfactual, time taken to generate the counterfactual)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">methods</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">methods</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_recourse_methods</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Check if the method exists in the dictionary</span>
+                <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Recourse method &#39;</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&#39; not found. Available methods: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="c1"># Instantiate the recourse method</span>
+                <span class="n">recourse_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="p">[</span><span class="n">method</span><span class="p">](</span><span class="bp">self</span><span class="p">)</span>  <span class="c1"># Pass the classification task to the method</span>
+
+                <span class="c1"># Start timer</span>
+                <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+
+                <span class="n">res</span> <span class="o">=</span> <span class="n">recourse_method</span><span class="o">.</span><span class="n">generate_for_all</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>  <span class="c1"># Generate counterfactuals</span>
+                <span class="n">res_correct_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_datatype</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span>
+                <span class="c1"># End timer</span>
+                <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+
+                <span class="c1"># Store the result in the counterfactual explanations dictionary</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_CEs</span><span class="p">[</span><span class="n">method</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">res</span><span class="p">,</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">]</span>
+
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error generating counterfactuals with method &#39;</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">CEs</span></div>
+
+
+<div class="viewcode-block" id="ClassificationTask.generate_mm">
+<a class="viewcode-back" href="../../../rocelib.tasks.html#rocelib.tasks.ClassificationTask.ClassificationTask.generate_mm">[docs]</a>
+    <span class="k">def</span> <span class="nf">generate_mm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">methods</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;DataFrame&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates counterfactual explanations for the specified methods for each of the stored models and stores the results.</span>
+
+<span class="sd">        @param methods: List of recourse methods (by name) to use for counterfactual generation.</span>
+<span class="sd">        @return: A nested dictionary from recourse method to model name to a tuple of (Pandas dataframe holding the counterfactual, time taken to generate the counterfactual)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">methods</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">methods</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_recourse_methods</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">mm_flag</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Multiple models must be added in order to generate for MM&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">model_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mm_models</span><span class="p">):</span>
+                <span class="n">ces</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_for_model_method</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="nb">type</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># Primary model so we should store results in self._CEs</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_CEs</span><span class="p">[</span><span class="n">method</span><span class="p">]</span> <span class="o">=</span> <span class="n">ces</span>
+
+                <span class="c1"># Store results in mm_CEs</span>
+                <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mm_CEs</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">mm_CEs</span><span class="p">[</span><span class="n">method</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mm_CEs</span><span class="p">[</span><span class="n">method</span><span class="p">][</span><span class="n">model_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">ces</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mm_CEs</span></div>
+
+
+
+<div class="viewcode-block" id="ClassificationTask.generate_for_model_method">
+<a class="viewcode-back" href="../../../rocelib.tasks.html#rocelib.tasks.ClassificationTask.ClassificationTask.generate_for_model_method">[docs]</a>
+    <span class="k">def</span> <span class="nf">generate_for_model_method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="nb">type</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;GENERATING FOR: model: </span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">, method: </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Check if the method exists in the dictionary</span>
+            <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Recourse method &#39;</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&#39; not found. Available methods: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Instantiate the recourse method</span>
+            <span class="n">task</span> <span class="o">=</span> <span class="n">Task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mm_models</span><span class="p">[</span><span class="n">model_name</span><span class="p">],</span> <span class="n">dataset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
+            <span class="n">recourse_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="p">[</span><span class="n">method</span><span class="p">](</span><span class="n">task</span><span class="p">)</span>  <span class="c1"># Pass the classification task to the method</span>
+
+            <span class="c1"># Start timer</span>
+            <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+
+            <span class="n">res</span> <span class="o">=</span> <span class="n">recourse_method</span><span class="o">.</span><span class="n">generate_for_all</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>  <span class="c1"># Generate counterfactuals</span>
+            <span class="n">res_correct_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_datatype</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span>
+            <span class="c1"># End timer</span>
+            <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+
+            <span class="c1"># Store the result in the counterfactual explanations dictionary</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">res</span><span class="p">,</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">]</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error generating counterfactuals with method &#39;</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+
+<div class="viewcode-block" id="ClassificationTask.evaluate">
+<a class="viewcode-back" href="../../../rocelib.tasks.html#rocelib.tasks.ClassificationTask.ClassificationTask.evaluate">[docs]</a>
+    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">methods</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">evaluations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">visualisation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evaluates the generated counterfactual explanations using specified evaluation metrics.</span>
+
+<span class="sd">        @param methods: List of recourse methods to evaluate.</span>
+<span class="sd">        @param evaluations: List of evaluation metrics to apply.</span>
+<span class="sd">        @return: Dictionary containing evaluation results per method and metric.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">methods</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">methods</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_recourse_methods</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">evaluations</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">evaluations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_evaluation_metrics</span><span class="p">()</span>
+
+        <span class="n">evaluation_results</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Validate evaluation names</span>
+        <span class="n">invalid_evaluations</span> <span class="o">=</span> <span class="p">[</span><span class="n">ev</span> <span class="k">for</span> <span class="n">ev</span> <span class="ow">in</span> <span class="n">evaluations</span> <span class="k">if</span> <span class="n">ev</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluation_metrics</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">invalid_evaluations</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid evaluation metrics: </span><span class="si">{</span><span class="n">invalid_evaluations</span><span class="si">}</span><span class="s2">. Available: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">evaluation_metrics</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Filter out methods that haven&#39;t been generated</span>
+        <span class="n">valid_methods</span> <span class="o">=</span> <span class="p">[</span><span class="n">method</span> <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">methods</span> <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CEs</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_methods</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No valid methods have been generated for evaluation.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">evaluation_results</span>
+        <span class="k">if</span> <span class="n">valid_methods</span> <span class="o">!=</span> <span class="n">methods</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;generate has not been called for </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">methods</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">set</span><span class="p">(</span><span class="n">valid_methods</span><span class="p">))</span><span class="si">}</span><span class="s2"> so evaluations were not performed for these&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Filter out methods that haven&#39;t been generated for MM if mm_flag is on</span>
+        <span class="n">mm_metric</span> <span class="o">=</span> <span class="p">[</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="n">ModelMultiplicityRobustnessEvaluator</span><span class="p">)</span> <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">evaluations</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mm_metric</span><span class="si">{</span><span class="n">mm_metric</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">mm_metric</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">mm_flag</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Multiple models must be added to the task in order to evaluate model multiplicity&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">valid_methods</span> <span class="o">=</span> <span class="p">[</span><span class="n">method</span> <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">methods</span> <span class="k">if</span> <span class="p">(</span><span class="n">method</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mm_CEs</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mm_CEs</span><span class="p">[</span><span class="n">method</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mm_models</span><span class="p">))]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_methods</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No valid methods have been generated for MM for evaluation. Call generate_mm for these methods&quot;</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">evaluation_results</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;generate_mm has not been called for </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">methods</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">set</span><span class="p">(</span><span class="n">valid_methods</span><span class="p">))</span><span class="si">}</span><span class="s2"> so evaluations were not performed for these&quot;</span><span class="p">)</span>
+
+
+        <span class="c1"># Perform evaluation</span>
+        <span class="k">for</span> <span class="n">evaluation</span> <span class="ow">in</span> <span class="n">evaluations</span><span class="p">:</span>
+            <span class="n">evaluator_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluation_metrics</span><span class="p">[</span><span class="n">evaluation</span><span class="p">]</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># Create evaluator instance</span>
+                <span class="n">evaluator</span> <span class="o">=</span> <span class="n">evaluator_class</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">valid_methods</span><span class="p">:</span>
+                    <span class="c1"># Retrieve generated counterfactuals</span>
+                    <span class="n">counterfactuals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CEs</span><span class="p">[</span><span class="n">method</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># Extract DataFrame from stored list</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Shape of CEs for </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">counterfactuals</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                    <span class="c1"># Ensure counterfactuals are not empty</span>
+                    <span class="k">if</span> <span class="n">counterfactuals</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">counterfactuals</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping evaluation for method &#39;</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&#39; as no counterfactuals were generated.&quot;</span><span class="p">)</span>
+                        <span class="k">continue</span>
+
+                    <span class="c1"># Perform evaluation</span>
+                    <span class="n">score</span> <span class="o">=</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+                    <span class="c1"># Store results</span>
+                    <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">evaluation_results</span><span class="p">:</span>
+                        <span class="n">evaluation_results</span><span class="p">[</span><span class="n">method</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="n">evaluation_results</span><span class="p">[</span><span class="n">method</span><span class="p">][</span><span class="n">evaluation</span><span class="p">]</span> <span class="o">=</span> <span class="n">score</span>
+
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error evaluating &#39;</span><span class="si">{</span><span class="n">evaluation</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Print results in table format</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_print_evaluation_results</span><span class="p">(</span><span class="n">evaluation_results</span><span class="p">,</span> <span class="n">evaluations</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">visualisation</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_visualise_results</span><span class="p">(</span><span class="n">evaluation_results</span><span class="p">,</span> <span class="n">evaluations</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">evaluation_results</span></div>
+
+    <span class="k">def</span> <span class="nf">_visualise_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">evaluations_results</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">evaluations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">evaluations_results</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No evaluation results to display.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">evaluations</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_visualise_results_radar_chart</span><span class="p">(</span><span class="n">evaluations_results</span><span class="p">,</span> <span class="n">evaluations</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_visualise_results_bar_chart</span><span class="p">(</span><span class="n">evaluations_results</span><span class="p">,</span> <span class="n">evaluations</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_visualise_results_bar_chart</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">evaluation_results</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">evaluations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+        <span class="n">recourse_methods</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">evaluation_results</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+        <span class="c1"># Extract metric values</span>
+        <span class="n">metric_values</span> <span class="o">=</span> <span class="p">{</span><span class="n">method</span><span class="p">:</span> <span class="p">[</span><span class="n">evaluation_results</span><span class="p">[</span><span class="n">method</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">evaluations</span><span class="p">]</span> <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">recourse_methods</span><span class="p">}</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">recourse_methods</span><span class="p">))</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="mf">0.2</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">metric</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">evaluations</span><span class="p">):</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">metric_values</span><span class="p">[</span><span class="n">method</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">recourse_methods</span><span class="p">]</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="n">width</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">recourse_methods</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Recourse Methods&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Metric Values&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Bar Chart of Evaluation Metrics&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;/tmp/evaluation_chart.png&quot;</span><span class="p">)</span>  <span class="c1"># Save the figure instead of displaying it</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>  <span class="c1"># Ensure the figure is closed properly</span>
+
+
+
+    <span class="k">def</span> <span class="nf">_visualise_results_radar_chart</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">evaluation_results</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">evaluations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate a radar chart for evaluation results.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            evaluation_results (Dict[str, Dict[str, Any]]):</span>
+<span class="sd">                A dictionary where keys are recourse methods, and values are dictionaries mapping metric names to values.</span>
+<span class="sd">            evaluations (List[str]):</span>
+<span class="sd">                A list of metric names to be visualized (must have at least 4 metrics).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">evaluations</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;There must be at least 4 evaluation metrics to plot a radar chart.&quot;</span>
+
+        <span class="c1"># Extract recourse methods</span>
+        <span class="n">recourse_methods</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">evaluation_results</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+        <span class="c1"># Extract metric values for each recourse method</span>
+        <span class="n">metric_values</span> <span class="o">=</span> <span class="p">{</span><span class="n">method</span><span class="p">:</span> <span class="p">[</span><span class="n">evaluation_results</span><span class="p">[</span><span class="n">method</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">evaluations</span><span class="p">]</span>
+                         <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">recourse_methods</span><span class="p">}</span>
+
+        <span class="c1"># Define radar chart angles</span>
+        <span class="n">num_vars</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">evaluations</span><span class="p">)</span>
+        <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">num_vars</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+        <span class="c1"># Close the radar chart loop</span>
+        <span class="n">angles</span> <span class="o">+=</span> <span class="n">angles</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># Create figure</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">subplot_kw</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">polar</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+        <span class="c1"># Plot each recourse method</span>
+        <span class="k">for</span> <span class="n">method</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">metric_values</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">values</span> <span class="o">+=</span> <span class="n">values</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Close the loop</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+
+        <span class="c1"># Add labels and legend</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">angles</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">evaluations</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">([])</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Radar Chart of Evaluation Metrics&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">1.3</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">))</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">pause</span><span class="p">(</span><span class="mf">0.001</span><span class="p">)</span>  <span class="c1"># Allows the figure to be shown briefly without blocking</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>  <span class="c1"># Closes the figure to avoid blocking execution</span>
+
+    <span class="k">def</span> <span class="nf">_print_evaluation_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">evaluation_results</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">evaluations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Prints the evaluation results in a table format.</span>
+
+<span class="sd">        @param evaluation_results: Dictionary containing evaluation scores per method and metric.</span>
+<span class="sd">        @param evaluations: List of evaluation metrics that were actually requested.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">evaluation_results</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No evaluation results to display.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Prepare table data</span>
+        <span class="n">table_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Recourse Method&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">evaluations</span>  <span class="c1"># Only include requested evaluations</span>
+
+        <span class="k">for</span> <span class="n">method</span><span class="p">,</span> <span class="n">scores</span> <span class="ow">in</span> <span class="n">evaluation_results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="p">[</span><span class="n">method</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">scores</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="s2">&quot;N/A&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">evaluations</span><span class="p">]</span>
+            <span class="n">table_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Evaluation Results:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">tabulate</span><span class="p">(</span><span class="n">table_data</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">tablefmt</span><span class="o">=</span><span class="s2">&quot;grid&quot;</span><span class="p">))</span>
+
+
+
+<div class="viewcode-block" id="ClassificationTask.convert_datatype">
+<a class="viewcode-back" href="../../../rocelib.tasks.html#rocelib.tasks.ClassificationTask.ClassificationTask.convert_datatype">[docs]</a>
+    <span class="k">def</span> <span class="nf">convert_datatype</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">target_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Converts a Pandas DataFrame to the specified data type.</span>
+
+<span class="sd">        @param data: pd.DataFrame - The input DataFrame.</span>
+<span class="sd">        @param target_type: str - The target data type: &quot;DataFrame&quot;, &quot;NPArray&quot;, or &quot;TTensor&quot;.</span>
+<span class="sd">        @return: Converted data in the specified format.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Input data must be a Pandas DataFrame.&quot;</span><span class="p">)</span>
+
+        <span class="n">target_type</span> <span class="o">=</span> <span class="n">target_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>  <span class="c1"># Normalize input for case insensitivity</span>
+
+        <span class="k">if</span> <span class="n">target_type</span> <span class="o">==</span> <span class="s2">&quot;dataframe&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">elif</span> <span class="n">target_type</span> <span class="o">==</span> <span class="s2">&quot;nparray&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">target_type</span> <span class="o">==</span> <span class="s2">&quot;tensor&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid target_type. Choose from: &#39;DataFrame&#39;, &#39;NPArray&#39;, &#39;Tensor&#39;.&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ClassificationTask.add_recourse_method">
+<a class="viewcode-back" href="../../../rocelib.tasks.html#rocelib.tasks.ClassificationTask.ClassificationTask.add_recourse_method">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_recourse_method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">method_class</span><span class="p">:</span> <span class="n">RecourseGenerator</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="p">[</span><span class="n">method_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">method_class</span></div>
+
+
+<div class="viewcode-block" id="ClassificationTask.add_evaluation_metric">
+<a class="viewcode-back" href="../../../rocelib.tasks.html#rocelib.tasks.ClassificationTask.ClassificationTask.add_evaluation_metric">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_evaluation_metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metric_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">metric_class</span><span class="p">:</span> <span class="n">Evaluator</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">evaluation_metrics</span><span class="p">[</span><span class="n">metric_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">metric_class</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Aaryan Purohit.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
