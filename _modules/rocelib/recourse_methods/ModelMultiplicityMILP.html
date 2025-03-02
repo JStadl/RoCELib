@@ -294,7 +294,8 @@
         <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gurobiModel</span><span class="o">.</span><span class="n">getVars</span><span class="p">():</span>
             <span class="k">if</span> <span class="s1">&#39;v_0_&#39;</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">varName</span><span class="p">:</span>
                 <span class="n">ce</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">getAttr</span><span class="p">(</span><span class="n">GRB</span><span class="o">.</span><span class="n">Attr</span><span class="o">.</span><span class="n">X</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">ce</span><span class="p">)</span><span class="o">.</span><span class="n">T</span></div>
+        <span class="c1"># return pd.DataFrame(ce).T</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">ce</span><span class="p">],</span> <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span></div>
 
 </pre></div>
 

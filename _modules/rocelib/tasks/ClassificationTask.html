@@ -321,7 +321,6 @@
 
         <span class="c1"># Filter out methods that haven&#39;t been generated for MM if mm_flag is on</span>
         <span class="n">mm_metric</span> <span class="o">=</span> <span class="p">[</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="n">ModelMultiplicityRobustnessEvaluator</span><span class="p">)</span> <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">evaluations</span><span class="p">]</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mm_metric</span><span class="si">{</span><span class="n">mm_metric</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">mm_metric</span><span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">mm_flag</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Multiple models must be added to the task in order to evaluate model multiplicity&quot;</span><span class="p">)</span>
@@ -343,28 +342,28 @@
             <span class="n">evaluator</span> <span class="o">=</span> <span class="n">evaluator_class</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
             <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">valid_methods</span><span class="p">:</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method: </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="c1"># try:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method: </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-                    <span class="c1"># Retrieve generated counterfactuals</span>
-                    <span class="n">counterfactuals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CEs</span><span class="p">[</span><span class="n">method</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># Extract DataFrame from stored list</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Shape of CEs for </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">counterfactuals</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="c1"># Retrieve generated counterfactuals</span>
+                <span class="n">counterfactuals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CEs</span><span class="p">[</span><span class="n">method</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># Extract DataFrame from stored list</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Shape of CEs for </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">counterfactuals</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-                    <span class="c1"># Ensure counterfactuals are not empty</span>
-                    <span class="k">if</span> <span class="n">counterfactuals</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">counterfactuals</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
-                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping evaluation for method &#39;</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&#39; as no counterfactuals were generated.&quot;</span><span class="p">)</span>
-                        <span class="k">continue</span>
+                <span class="c1"># Ensure counterfactuals are not empty</span>
+                <span class="k">if</span> <span class="n">counterfactuals</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">counterfactuals</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping evaluation for method &#39;</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&#39; as no counterfactuals were generated.&quot;</span><span class="p">)</span>
+                    <span class="k">continue</span>
 
-                    <span class="c1"># Perform evaluation</span>
-                    <span class="n">score</span> <span class="o">=</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="c1"># Perform evaluation</span>
+                <span class="n">score</span> <span class="o">=</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-                    <span class="c1"># Store results</span>
-                    <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">evaluation_results</span><span class="p">:</span>
-                        <span class="n">evaluation_results</span><span class="p">[</span><span class="n">method</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-                    <span class="n">evaluation_results</span><span class="p">[</span><span class="n">method</span><span class="p">][</span><span class="n">evaluation</span><span class="p">]</span> <span class="o">=</span> <span class="n">score</span>
+                <span class="c1"># Store results</span>
+                <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">evaluation_results</span><span class="p">:</span>
+                    <span class="n">evaluation_results</span><span class="p">[</span><span class="n">method</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">evaluation_results</span><span class="p">[</span><span class="n">method</span><span class="p">][</span><span class="n">evaluation</span><span class="p">]</span> <span class="o">=</span> <span class="n">score</span>
                     
-                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&#39;: Error evaluating &#39;</span><span class="si">{</span><span class="n">evaluation</span><span class="si">}</span><span class="s2">&#39; for : </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="c1"># except Exception as e:</span>
+                <span class="c1">#     print(f&quot;&#39;{method}&#39;: Error evaluating &#39;{evaluation}&#39; for : {e}&quot;)</span>
 
             
 
