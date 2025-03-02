@@ -76,7 +76,7 @@
 <span class="kn">from</span> <span class="nn">rocelib.datasets.DatasetLoader</span> <span class="kn">import</span> <span class="n">DatasetLoader</span>
 <span class="kn">from</span> <span class="nn">rocelib.models.imported_models.PytorchModel</span> <span class="kn">import</span> <span class="n">PytorchModel</span>
 <span class="kn">from</span> <span class="nn">rocelib.recourse_methods.RecourseGenerator</span> <span class="kn">import</span> <span class="n">RecourseGenerator</span>
-<span class="kn">from</span> <span class="nn">rocelib.tasks.ClassificationTask</span> <span class="kn">import</span> <span class="n">ClassificationTask</span>
+<span class="kn">from</span> <span class="nn">rocelib.tasks.Task</span> <span class="kn">import</span> <span class="n">Task</span>
 
 
 <div class="viewcode-block" id="create_weights_and_bias_dictionary">
@@ -149,7 +149,7 @@
 <span class="sd">                    A list of trained PyTorch models to incorporate into the MILP constraints.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">ClassificationTask</span><span class="p">(</span><span class="n">models</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dl</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">Task</span><span class="p">(</span><span class="n">models</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dl</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">gurobiModel</span> <span class="o">=</span> <span class="n">Model</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">models</span> <span class="o">=</span> <span class="n">models</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">inputNodes</span> <span class="o">=</span> <span class="kc">None</span>
