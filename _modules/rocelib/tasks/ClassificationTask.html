@@ -77,9 +77,6 @@
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
 <span class="kn">from</span> <span class="nn">rocelib.datasets.DatasetLoader</span> <span class="kn">import</span> <span class="n">DatasetLoader</span>
-<span class="kn">from</span> <span class="nn">rocelib.evaluations.robustness_evaluations.Evaluator</span> <span class="kn">import</span> <span class="n">Evaluator</span>
-<span class="kn">from</span> <span class="nn">rocelib.evaluations.robustness_evaluations.ModelMultiplicityRobustnessEvaluator</span> <span class="kn">import</span> \
-    <span class="n">ModelMultiplicityRobustnessEvaluator</span>
 <span class="kn">from</span> <span class="nn">rocelib.models.TrainedModel</span> <span class="kn">import</span> <span class="n">TrainedModel</span>
 <span class="kn">from</span> <span class="nn">rocelib.recourse_methods.ArgEnsembling</span> <span class="kn">import</span> <span class="n">ArgEnsembling</span>
 <span class="kn">from</span> <span class="nn">rocelib.recourse_methods.RecourseGenerator</span> <span class="kn">import</span> <span class="n">RecourseGenerator</span>
@@ -101,29 +98,18 @@
 <span class="kn">from</span> <span class="nn">rocelib.recourse_methods.DiverseRobustCE</span> <span class="kn">import</span> <span class="n">DiverseRobustCE</span>
 <span class="kn">from</span> <span class="nn">rocelib.recourse_methods.PROPLACE</span> <span class="kn">import</span> <span class="n">PROPLACE</span>
 
+<span class="c1"># Evaluators</span>
+<span class="kn">from</span> <span class="nn">rocelib.evaluations.robustness_evaluations.Evaluator</span> <span class="kn">import</span> <span class="n">Evaluator</span>
 <span class="kn">from</span> <span class="nn">rocelib.evaluations.ManifoldEvaluator</span> <span class="kn">import</span> <span class="n">ManifoldEvaluator</span>
 <span class="kn">from</span> <span class="nn">rocelib.evaluations.DistanceEvaluator</span> <span class="kn">import</span> <span class="n">DistanceEvaluator</span>
 <span class="kn">from</span> <span class="nn">rocelib.evaluations.ValidityEvaluator</span> <span class="kn">import</span> <span class="n">ValidityEvaluator</span>
-<span class="kn">from</span> <span class="nn">rocelib.evaluations.RobustnessProportionEvaluator</span> <span class="kn">import</span> <span class="n">RobustnessProportionEvaluator</span>
+<span class="kn">from</span> <span class="nn">rocelib.evaluations.robustness_evaluations.MC_Robustness_Implementations.DeltaRobustnessEvaluator</span> <span class="kn">import</span> <span class="n">DeltaRobustnessEvaluator</span>
+<span class="kn">from</span> <span class="nn">rocelib.evaluations.robustness_evaluations.ModelMultiplicityRobustnessEvaluator</span> <span class="kn">import</span> \
+    <span class="n">ModelMultiplicityRobustnessEvaluator</span>
 <span class="kn">from</span> <span class="nn">rocelib.evaluations.robustness_evaluations.NE_Robustness_Implementations.InvalidationRateRobustnessEvaluator</span> <span class="kn">import</span> <span class="n">InvalidationRateRobustnessEvaluator</span>
-
 <span class="kn">from</span> <span class="nn">rocelib.evaluations.robustness_evaluations.MM_Robustness_Implementations.MultiplicityValidityRobustnessEvaluator</span> <span class="kn">import</span> <span class="n">MultiplicityValidityRobustnessEvaluator</span>
-<span class="c1"># from robustx.generators.robust_CE_methods.APAS import APAS</span>
-<span class="c1"># from robustx.generators.robust_CE_methods.ArgEnsembling import ArgEnsembling</span>
-<span class="c1"># from robustx.generators.robust_CE_methods.DiverseRobustCE import DiverseRobustCE</span>
-<span class="c1"># from robustx.generators.robust_CE_methods.MCER import MCER</span>
-<span class="c1"># from robustx.generators.robust_CE_methods.ModelMultiplicityMILP import ModelMultiplicityMILP</span>
-<span class="c1"># from robustx.generators.robust_CE_methods.PROPLACE import PROPLACE</span>
-<span class="c1"># from robustx.generators.robust_CE_methods.RNCE import RNCE</span>
-<span class="c1"># from robustx.generators.robust_CE_methods.ROAR import ROAR</span>
-<span class="c1"># from robustx.generators.robust_CE_methods.STCE import STCE</span>
+<span class="kn">from</span> <span class="nn">rocelib.evaluations.robustness_evaluations.IC_Robustness_Implementations.SetDistanceRobustnessEvaluator</span> <span class="kn">import</span> <span class="n">SetDistanceRobustnessEvaluator</span>
 
-<span class="c1"># self.methods = {&quot;APAS&quot;: APAS, &quot;ArgEnsembling&quot;: ArgEnsembling, &quot;DiverseRobustCE&quot;: DiverseRobustCE, &quot;MCER&quot;: MCER,</span>
-<span class="c1">#            &quot;ModelMultiplicityMILP&quot;: ModelMultiplicityMILP, &quot;PROPLACE&quot;: PROPLACE, &quot;RNCE&quot;: RNCE, &quot;ROAR&quot;: ROAR,</span>
-<span class="c1">#            &quot;STCE&quot;: STCE, &quot;BinaryLinearSearch&quot;: BinaryLinearSearch, &quot;GuidedBinaryLinearSearch&quot;: GuidedBinaryLinearSearch,</span>
-<span class="c1">#            &quot;NNCE&quot;: NNCE, &quot;KDTreeNNCE&quot;: KDTreeNNCE, &quot;MCE&quot;: MCE, &quot;Wachter&quot;: Wachter}</span>
-<span class="c1"># self.evaluation_metrics = {&quot;Distance&quot;: DistanceEvaluator, &quot;Validity&quot;: ValidityEvaluator, &quot;Manifold&quot;: ManifoldEvaluator,</span>
-<span class="c1">#                &quot;Delta-robustness&quot;: RobustnessProportionEvaluator}</span>
 
 <span class="n">TIMEOUT_SECONDS</span> <span class="o">=</span> <span class="mi">60</span>
 
@@ -168,8 +154,9 @@
             <span class="s2">&quot;Validity&quot;</span><span class="p">:</span> <span class="n">ValidityEvaluator</span><span class="p">,</span>
             <span class="s2">&quot;ManifoldEvaluator&quot;</span><span class="p">:</span> <span class="n">ManifoldEvaluator</span><span class="p">,</span>
             <span class="s2">&quot;ModelMultiplicityRobustness&quot;</span><span class="p">:</span> <span class="n">MultiplicityValidityRobustnessEvaluator</span><span class="p">,</span>
-            <span class="s2">&quot;DeltaRobustnessEvaluator&quot;</span><span class="p">:</span> <span class="n">RobustnessProportionEvaluator</span><span class="p">,</span>
-            <span class="s2">&quot;InvalidationRateRobustnessEvaluator&quot;</span><span class="p">:</span> <span class="n">InvalidationRateRobustnessEvaluator</span>
+            <span class="s2">&quot;DeltaRobustnessEvaluator&quot;</span><span class="p">:</span> <span class="n">DeltaRobustnessEvaluator</span><span class="p">,</span>
+            <span class="s2">&quot;InvalidationRateRobustnessEvaluator&quot;</span><span class="p">:</span> <span class="n">InvalidationRateRobustnessEvaluator</span><span class="p">,</span>
+            <span class="s2">&quot;SetDistanceRobustnessEvaluator&quot;</span><span class="p">:</span> <span class="n">SetDistanceRobustnessEvaluator</span>
         <span class="p">}</span>
 
 <div class="viewcode-block" id="ClassificationTask.get_random_positive_instance">
