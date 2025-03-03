@@ -134,6 +134,9 @@
             <span class="c1"># Drop NaN-containing &quot;Loss&quot; column before using LOF</span>
             <span class="n">data_with_instance</span> <span class="o">=</span> <span class="n">data_with_instance</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Loss&quot;</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
 
+            <span class="k">if</span> <span class="s2">&quot;HiringDecision&quot;</span> <span class="ow">in</span> <span class="n">data_with_instance</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="n">data_with_instance</span> <span class="o">=</span> <span class="n">data_with_instance</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;HiringDecision&quot;</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+
             <span class="c1"># Apply Local Outlier Factor (LOF)</span>
             <span class="n">lof</span> <span class="o">=</span> <span class="n">LocalOutlierFactor</span><span class="p">(</span><span class="n">n_neighbors</span><span class="o">=</span><span class="n">n_neighbors</span><span class="p">)</span>
             <span class="n">lof_scores</span> <span class="o">=</span> <span class="n">lof</span><span class="o">.</span><span class="n">fit_predict</span><span class="p">(</span><span class="n">data_with_instance</span><span class="p">)</span>  <span class="c1"># Predict if data points are outliers (-1) or not (1)</span>
