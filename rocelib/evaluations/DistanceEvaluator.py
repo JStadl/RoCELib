@@ -1,6 +1,5 @@
 import numpy as np
 
-from rocelib.evaluations.RecourseEvaluator import RecourseEvaluator
 from rocelib.evaluations.robustness_evaluations.Evaluator import Evaluator
 from rocelib.lib.distance_functions.DistanceFunctions import euclidean
 

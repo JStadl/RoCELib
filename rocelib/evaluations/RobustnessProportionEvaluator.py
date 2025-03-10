@@ -1,4 +1,3 @@
-from rocelib.evaluations.RecourseEvaluator import RecourseEvaluator
 from rocelib.evaluations.robustness_evaluations.Evaluator import Evaluator
 from rocelib.evaluations.robustness_evaluations.MC_Robustness_Implementations.DeltaRobustnessEvaluator import DeltaRobustnessEvaluator
 from rocelib.evaluations.robustness_evaluations.ModelChangesRobustnessEvaluator import ModelChangesRobustnessEvaluator

@@ -1,11 +1,11 @@
 import pandas as pd
 from sklearn.neighbors import LocalOutlierFactor
 
-from rocelib.evaluations.RecourseEvaluator import RecourseEvaluator
+from rocelib.evaluations.robustness_evaluations.Evaluator import Evaluator
 
 
 ### Work In Progress ###
-class ManifoldEvaluator(RecourseEvaluator):
+class ManifoldEvaluator(Evaluator):
     """
      An Evaluator class which evaluates the proportion of counterfactuals which are on the data manifold using LOF
 
